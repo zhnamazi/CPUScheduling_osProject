@@ -47,30 +47,43 @@ def update_queue(): # update state
         if resources[r[0]] == 0 and resources[r[1]] == 0:
             ready.remove(t)
             heappush(waiting, (p, t))
+            t.state = "waiting"
     for t in waiting:
         r = get_resources(t)
         if resources[r[0]] > 0 and resources[r[1]] > 0:
             waiting.remove(t)
             ready.append(t)
+            t.state = "ready"
 
 
 
 def process_t():
     has_task = 0
     curTask = None
+    curR = None
     while True:
         if has_task==0:
+            mutex.acquire()
             # pick a task
+            curTask = ready.pop()
+            curTask.state = "running"
             # allocate resources
+            curR = get_resources(curTask)
+            resources[curR[0]] -= 1
+            resources[curR[1]] -= 1
             #check ready and waiting
+            update_queue()
             has_task = 1
+            mutex.release()
         curTask.remaining_time -= 1
         if curTask.remaining_time == 0:
-            has_task = 0
-            #lock
+            mutex.acquire()
             terminated.append(curTask)
-            #unlock
-            #free resources
+            curTask.state = "terminated"
+            resources[curR[0]] += 1
+            resources[curR[1]] += 1
+            has_task = 0
+            mutex.release()
         #wait for an event
         
         
