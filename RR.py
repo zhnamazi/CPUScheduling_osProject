@@ -61,39 +61,39 @@ def update_queue():
 
 
 def process_t(task_number, pause):
-    has_task = 0
     curTask = None
     curR = None
     while True:
-        pause[0] = True
-        endEvent.wait()
-        endEvent.clear()
-        pause[0] = False
-        if has_task==0:
-            mutex.acquire()
-            # pick a task
-            if not ready:
-                continue
-            curTask = ready.pop()
-            curTask.state = "running"
-            # allocate resources
-            curR = get_resources(curTask)
-            resources[curR[0]] -= 1
-            resources[curR[1]] -= 1
-            #check ready and waiting
-            update_queue()
-            has_task = 1
-            mutex.release()
+        # pause[0] = True
+        # endEvent.wait()
+        # endEvent.clear()
+        # pause[0] = False
+        mutex.acquire()
+        # pick a task
+        if not ready:
+            continue
+        curTask = ready.pop()
+        curTask.state = "running"
+        # allocate resources
+        curR = get_resources(curTask)
+        resources[curR[0]] -= 1
+        resources[curR[1]] -= 1
+        #check ready and waiting
+        update_queue()
+        mutex.release()
         curTask.remaining_time -= 1
         status[task_number] = curTask
+        mutex.acquire()
+        resources[curR[0]] += 1
+        resources[curR[1]] += 1
         if curTask.remaining_time == 0:
-            mutex.acquire()
             terminated.append(curTask)
             curTask.state = "terminated"
-            resources[curR[0]] += 1
-            resources[curR[1]] += 1
-            has_task = 0
-            mutex.release()
+        else:
+            ready.append(curTask)
+            curTask.state = "ready"
+        update_queue()
+        mutex.release()
 
 
 def print_t():
@@ -101,7 +101,7 @@ def print_t():
         printEvent.wait()
         printEvent.clear()
         if time ==1:
-            print("----- FCFS -----")
+            print("----- RR -----")
         print("Time: ", time)
         for i in range(4):
             s = status[i]

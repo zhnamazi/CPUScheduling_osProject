@@ -8,11 +8,10 @@ tasks = []
 ready= []
 waiting = []
 terminated = []
-endUnit = [[False],[False],[False],[False]]
+endUnit = [False,False,False,False]
 mutex = threading.Lock()
 endEvent = threading.Event()
 printEvent = threading.Event()
-time = 1
 
 
 class Task:
@@ -60,19 +59,22 @@ def update_queue():
             t.state = "ready"
 
 
-def process_t(task_number, pause):
+def process_t(proc_number):
     has_task = 0
     curTask = None
     curR = None
     while True:
-        pause[0] = True
         endEvent.wait()
-        endEvent.clear()
-        pause[0] = False
+        endUnit[proc_number] = False
         if has_task==0:
             mutex.acquire()
             # pick a task
             if not ready:
+                status[proc_number] = None
+                endUnit[proc_number] = True
+                if all(e for e in endUnit):
+                    printEvent.set()
+                endEvent.clear()
                 continue
             curTask = ready.pop()
             curTask.state = "running"
@@ -85,7 +87,7 @@ def process_t(task_number, pause):
             has_task = 1
             mutex.release()
         curTask.remaining_time -= 1
-        status[task_number] = curTask
+        status[proc_number] = curTask
         if curTask.remaining_time == 0:
             mutex.acquire()
             terminated.append(curTask)
@@ -94,13 +96,17 @@ def process_t(task_number, pause):
             resources[curR[1]] += 1
             has_task = 0
             mutex.release()
+        endUnit[proc_number] = True
+        if all(e for e in endUnit):
+            printEvent.set()
+        endEvent.clear()
 
 
 def print_t():
+    time = 1
     while True:
         printEvent.wait()
-        printEvent.clear()
-        if time ==1:
+        if time == 1:
             print("----- FCFS -----")
         print("Time: ", time)
         for i in range(4):
@@ -109,6 +115,10 @@ def print_t():
             if s != None:
                 task = s.name
             print("Core: ", i+1, "Task: ", task)
+        if len(terminated) != len(tasks):
+            time += 1
+            endEvent.set()
+        printEvent.clear()
 
 
 each_resources = input()
@@ -121,10 +131,10 @@ for i in range(num_of_tasks):
     tasks.append(Task(task[:2], task[3], int(task[5])))
     ready.append(tasks[-1])
 
-p1 = threading.Thread(target=process_t, args=(0, endUnit[0]))
-p2 = threading.Thread(target=process_t, args=(1, endUnit[1]))
-p3 = threading.Thread(target=process_t, args=(2, endUnit[2]))
-p4 = threading.Thread(target=process_t, args=(3, endUnit[3]))
+p1 = threading.Thread(target=process_t, args=[0])
+p2 = threading.Thread(target=process_t, args=[1])
+p3 = threading.Thread(target=process_t, args=[2])
+p4 = threading.Thread(target=process_t, args=[3])
 print_thread = threading.Thread(target=print_t, args=())
 
 p1.start()
@@ -133,21 +143,4 @@ p3.start()
 p4.start()
 print_thread.start()
 
-while len(terminated) < num_of_tasks:
-    endEvent.set()
-    while not all(e[0] == True for e in endUnit):
-        pass
-    printEvent.set()
-    time +=1
-
-
-p1.join()
-p2.join()
-p3.join()
-p4.join()
-print_thread.join()
-
-# check prints
-# for t in tasks:
-#     print(t.name, t.type, t.duration)
-# print(resources)
+endEvent.set()
