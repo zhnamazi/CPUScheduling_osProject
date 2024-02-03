@@ -74,6 +74,7 @@ def process_t(proc_number):
                 endUnit[proc_number] = True
                 if all(e for e in endUnit):
                     printEvent.set()
+                mutex.release()
                 endEvent.clear()
                 continue
             curTask = ready.pop()
@@ -112,7 +113,7 @@ def print_t():
         for i in range(4):
             s = status[i]
             task = "Idle"
-            if s != None:
+            if s is not None:
                 task = s.name
             print("Core: ", i+1, "Task: ", task)
         if len(terminated) != len(tasks):
