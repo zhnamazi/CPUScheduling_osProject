@@ -70,6 +70,7 @@ def process_t(task_number, pause):
         mutex.acquire()
         # pick a task
         if not ready:
+            mutex.release()
             continue
         curTask = ready.pop()
         curTask.state = "running"
@@ -89,7 +90,7 @@ def process_t(task_number, pause):
             terminated.append(curTask)
             curTask.state = "terminated"
         else:
-            ready.append(curTask)
+            heappush(ready, (curTask.remaining_time, curTask))
             curTask.state = "ready"
         update_queue()
         mutex.release()
@@ -132,13 +133,6 @@ p2.start()
 p3.start()
 p4.start()
 print_thread.start()
-
-while len(terminated) < num_of_tasks:
-    endEvent.set()
-    while not all(e[0] == True for e in endUnit):
-        pass
-    printEvent.set()
-    time +=1
 
 
 p1.join()
