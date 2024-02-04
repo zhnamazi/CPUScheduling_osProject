@@ -1,5 +1,6 @@
 import threading
 from heapq import *
+from operator import attrgetter
 
 
 resources = [0, 0, 0]
@@ -12,7 +13,6 @@ endUnit = [False,False,False,False]
 mutex = threading.Lock()
 endEvent = threading.Event()
 printEvent = threading.Event()
-time = 1
 
 
 class Task:
@@ -59,57 +59,72 @@ def update_queue():
             ready.append(t)
             t.state = "ready"
 
+    sorted(ready, key=attrgetter("remaining_time"))
 
-def process_t(task_number, pause):
+        
+
+
+def process_t(proc_number):
+    has_task = 0
     curTask = None
     curR = None
     while True:
-        # pause[0] = True
         endEvent.wait()
-        # pause[0] = False
-        mutex.acquire()
-        # pick a task
-        if not ready:
+        endUnit[proc_number] = False
+        if has_task==0:
+            mutex.acquire()
+            # pick a task
+            if not ready:
+                status[proc_number] = None
+                endUnit[proc_number] = True
+                if all(e for e in endUnit):
+                    printEvent.set()
+                mutex.release()
+                endEvent.clear()
+                continue
+            curTask = ready.pop()
+            curTask.state = "running"
+            # allocate resources
+            curR = get_resources(curTask)
+            resources[curR[0]] -= 1
+            resources[curR[1]] -= 1
+            #check ready and waiting
+            update_queue()
+            has_task = 1
             mutex.release()
-            continue
-        curTask = ready.pop()
-        curTask.state = "running"
-        # allocate resources
-        curR = get_resources(curTask)
-        resources[curR[0]] -= 1
-        resources[curR[1]] -= 1
-        #check ready and waiting
-        update_queue()
-        mutex.release()
         curTask.remaining_time -= 1
-        status[task_number] = curTask
-        mutex.acquire()
-        resources[curR[0]] += 1
-        resources[curR[1]] += 1
+        status[proc_number] = curTask
         if curTask.remaining_time == 0:
+            mutex.acquire()
             terminated.append(curTask)
             curTask.state = "terminated"
-        else:
-            heappush(ready, (curTask.remaining_time, curTask))
-            curTask.state = "ready"
-        update_queue()
-        mutex.release()
+            resources[curR[0]] += 1
+            resources[curR[1]] += 1
+            has_task = 0
+            mutex.release()
+        endUnit[proc_number] = True
+        if all(e for e in endUnit):
+            printEvent.set()
         endEvent.clear()
 
 
 def print_t():
+    time = 1
     while True:
         printEvent.wait()
-        printEvent.clear()
-        if time ==1:
-            print("----- RR -----")
+        if time == 1:
+            print("----- SJF -----")
         print("Time: ", time)
         for i in range(4):
             s = status[i]
             task = "Idle"
-            if s != None:
+            if s is not None:
                 task = s.name
             print("Core: ", i+1, "Task: ", task)
+        if len(terminated) != len(tasks):
+            time += 1
+            endEvent.set()
+        printEvent.clear()
 
 
 each_resources = input()
@@ -122,10 +137,10 @@ for i in range(num_of_tasks):
     tasks.append(Task(task[:2], task[3], int(task[5])))
     ready.append(tasks[-1])
 
-p1 = threading.Thread(target=process_t, args=(0, endUnit[0]))
-p2 = threading.Thread(target=process_t, args=(1, endUnit[1]))
-p3 = threading.Thread(target=process_t, args=(2, endUnit[2]))
-p4 = threading.Thread(target=process_t, args=(3, endUnit[3]))
+p1 = threading.Thread(target=process_t, args=[0])
+p2 = threading.Thread(target=process_t, args=[1])
+p3 = threading.Thread(target=process_t, args=[2])
+p4 = threading.Thread(target=process_t, args=[3])
 print_thread = threading.Thread(target=print_t, args=())
 
 p1.start()
@@ -134,14 +149,4 @@ p3.start()
 p4.start()
 print_thread.start()
 
-
-p1.join()
-p2.join()
-p3.join()
-p4.join()
-print_thread.join()
-
-# check prints
-# for t in tasks:
-#     print(t.name, t.type, t.duration)
-# print(resources)
+endEvent.set()
