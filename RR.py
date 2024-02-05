@@ -5,14 +5,14 @@ from heapq import *
 resources = [0, 0, 0]
 status = [None, None, None, None]
 tasks = []
-ready= []
+ready = []
 waiting = []
 terminated = []
-endUnit = [False,False,False,False]
+endUnit = [False, False, False, False]
 mutex = threading.Lock()
 endEvent = threading.Event()
 printEvent = threading.Event()
-time = 1
+tempList = []
 
 
 class Task:
@@ -20,21 +20,21 @@ class Task:
         self.name = name
         self.type = task_type
         self.duration = duration
-        self.state = "ready" 
+        self.state = "ready"
         self.remaining_time = duration
 
 
-def get_resources(task :Task):
+def get_resources(task: Task):
     match task.type:
         case 'x':
-            return (0,1)
+            return (0, 1)
         case 'y':
-            return (1,2)
+            return (1, 2)
         case 'z':
-            return (0,2)
-        
+            return (0, 2)
 
-def get_priority(task :Task):
+
+def get_priority(task: Task):
     match task.type:
         case 'x':
             return 3
@@ -58,21 +58,25 @@ def update_queue():
             waiting.remove(t)
             ready.append(t)
             t.state = "ready"
-
+       
 
 def process_t(proc_number):
-    #print("process_t")
     curTask = None
     curR = None
     while True:
         endEvent.wait()
         endUnit[proc_number] = False
-        mutex.acquire()
         # pick a task
-        if not ready:
+        mutex.acquire()
+        if (not ready): #here  and (not tempList)
             status[proc_number] = None
             endUnit[proc_number] = True
             if all(e for e in endUnit):
+                for i in range(len(endUnit)):
+                    endUnit[i] = False
+                for i in range(len(tempList)):
+                    ts = tempList.pop()
+                    ready.append(ts)
                 printEvent.set()
             mutex.release()
             endEvent.clear()
@@ -83,42 +87,48 @@ def process_t(proc_number):
         curR = get_resources(curTask)
         resources[curR[0]] -= 1
         resources[curR[1]] -= 1
-        #check ready and waiting
+        # check ready and waiting
         update_queue()
         mutex.release()
+
         curTask.remaining_time -= 1
         status[proc_number] = curTask
+
         mutex.acquire()
         resources[curR[0]] += 1
         resources[curR[1]] += 1
         if curTask.remaining_time == 0:
-            #mutex.acquire()
             terminated.append(curTask)
             curTask.state = "terminated"
-            # resources[curR[0]] += 1
-            # resources[curR[1]] += 1
-            #mutex.release()
         else:
-            #mutex.acquire()
-            ready.append(curTask)
             curTask.state = "ready"
-            #mutex.release()
+            tempList.append(curTask)
+
         update_queue()
         mutex.release()
         endUnit[proc_number] = True
+        #print(curTask.name, endUnit)
         if all(e for e in endUnit):
+            for i in range(len(endUnit)):
+                endUnit[i] = False
+            for i in range(len(tempList)):
+                ts = tempList.pop()
+                ready.append(ts)
+            # print("tempList:")
+            # for ts in tempList:
+            #     print(ts.name)
             printEvent.set()
         endEvent.clear()
 
-        
 
 def print_t():
     time = 1
-    print("print_t")
     while True:
         printEvent.wait()
-        if time ==1:
+        if time == 1:
             print("----- RR -----")
+        # for t in ready:
+        #     print(t.name)
         print("Time: ", time)
         for i in range(4):
             s = status[i]
@@ -126,12 +136,11 @@ def print_t():
             if s is not None:
                 task = s.name
             print("Core: ", i+1, "Task: ", task)
-        if len(terminated) != len(tasks):
+        if len(terminated) < len(tasks) and time < 9:
             time += 1
+            tempList.clear()
             endEvent.set()
         printEvent.clear()
-        for i in ready:
-            print(i.name)
 
 
 each_resources = input()
@@ -156,10 +165,10 @@ p3.start()
 p4.start()
 print_thread.start()
 
-
 endEvent.set()
 
-# check prints
-# for t in tasks:
-#     print(t.name, t.type, t.duration)
-# print(resources)
+# p1.join()
+# p2.join()
+# p3.join()
+# p4.join()
+# print_thread.join()
