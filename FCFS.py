@@ -1,4 +1,3 @@
-import sys
 import threading
 from heapq import *
 
@@ -13,6 +12,7 @@ endUnit = [False,False,False,False]
 mutex = threading.Lock()
 endEvent = threading.Event()
 printEvent = threading.Event()
+time = 1
 
 
 class Task:
@@ -22,6 +22,7 @@ class Task:
         self.duration = duration
         self.state = "ready" 
         self.remaining_time = duration
+        self.last_usage = 0
 
 
 def get_resources(task :Task):
@@ -58,6 +59,10 @@ def update_queue():
             waiting.remove(t)
             ready.append(t)
             t.state = "ready"
+    for t in waiting:
+        if (time - t.last_usage) > 3/2 * t.remaining_time:
+            waiting.remove(t)
+            waiting.insert(0, t)
 
 
 def process_t(proc_number):
@@ -69,7 +74,6 @@ def process_t(proc_number):
         endUnit[proc_number] = False
         if has_task==0:
             mutex.acquire()
-            # pick a task
             if not ready:
                 status[proc_number] = None
                 endUnit[proc_number] = True
@@ -80,6 +84,7 @@ def process_t(proc_number):
                 continue
             curTask = ready.pop()
             curTask.state = "running"
+            curTask.last_usage = time
             # allocate resources
             curR = get_resources(curTask)
             resources[curR[0]] -= 1
@@ -88,8 +93,12 @@ def process_t(proc_number):
             update_queue()
             has_task = 1
             mutex.release()
+        
+        
         curTask.remaining_time -= 1
         status[proc_number] = curTask
+
+        
         if curTask.remaining_time == 0:
             mutex.acquire()
             terminated.append(curTask)
@@ -105,7 +114,7 @@ def process_t(proc_number):
 
 
 def print_t():
-    time = 1
+    global time
     while True:
         printEvent.wait()
         if time == 1:
