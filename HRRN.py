@@ -15,7 +15,6 @@ endEvent = threading.Event()
 printEvent = threading.Event()
 time = 1
 
-
 class Task:
     def __init__(self, name, task_type, duration):
         self.name = name
@@ -23,27 +22,25 @@ class Task:
         self.duration = duration
         self.state = "ready" 
         self.remaining_time = duration
-        self.last_usage = 0
-
 
 
 def get_resources(task :Task):
     match task.type:
-        case 'X':
+        case 'x':
             return (0,1)
-        case 'Y':
+        case 'y':
             return (1,2)
-        case 'Z':
+        case 'z':
             return (0,2)
         
 
 def get_priority(task :Task):
     match task.type:
-        case 'X':
+        case 'x':
             return 3
-        case 'Y':
+        case 'y':
             return 2
-        case 'Z':
+        case 'z':
             return 1
 
 
@@ -61,15 +58,21 @@ def update_queue():
             waiting.remove(t)
             ready.append(t)
             t.state = "ready"
-
-    sorted(ready, key=attrgetter("remaining_time"))
+            
+    ready.sort(key = calculate_ratio, reverse=True)
     
     for t in waiting:
         if (time - t.last_usage) > 3/2 * t.remaining_time:
             waiting.remove(t)
             waiting.insert(0, t)
-
+    
+    
         
+def calculate_ratio(t :Task):
+    waiting_time = time - (t.duration - t.remaining_time)
+    response = (waiting_time + t.duration)/t.duration
+    return response
+
 
 
 def process_t(proc_number):
@@ -117,11 +120,11 @@ def process_t(proc_number):
 
 
 def print_t():
-    time = 1
+    global time 
     while True:
         printEvent.wait()
         if time == 1:
-            print("----- SJF -----")
+            print("----- HRRN -----")
         print("Time: ", time)
         for i in range(4):
             s = status[i]

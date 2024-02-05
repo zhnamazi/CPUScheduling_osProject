@@ -29,21 +29,21 @@ class Task:
 
 def get_resources(task: Task):
     match task.type:
-        case 'x':
-            return (0, 1)
-        case 'y':
-            return (1, 2)
-        case 'z':
-            return (0, 2)
+        case 'X':
+            return (0,1)
+        case 'Y':
+            return (1,2)
+        case 'Z':
+            return (0,2)
 
 
-def get_priority(task: Task):
+def get_priority(task :Task):
     match task.type:
-        case 'x':
+        case 'X':
             return 3
-        case 'y':
+        case 'Y':
             return 2
-        case 'z':
+        case 'Z':
             return 1
 
 
