@@ -13,6 +13,7 @@ endUnit = [False,False,False,False]
 mutex = threading.Lock()
 endEvent = threading.Event()
 printEvent = threading.Event()
+time = 1
 
 
 class Task:
@@ -22,6 +23,8 @@ class Task:
         self.duration = duration
         self.state = "ready" 
         self.remaining_time = duration
+        self.last_usage = 0
+
 
 
 def get_resources(task :Task):
@@ -60,6 +63,11 @@ def update_queue():
             t.state = "ready"
 
     sorted(ready, key=attrgetter("remaining_time"))
+    
+    for t in waiting:
+        if (time - t.last_usage) > 3/2 * t.remaining_time:
+            waiting.remove(t)
+            waiting.insert(0, t)
 
         
 
