@@ -1,3 +1,4 @@
+import sys
 import threading
 from heapq import *
 
@@ -116,9 +117,11 @@ def print_t():
             if s is not None:
                 task = s.name
             print("Core: ", i+1, "Task: ", task)
-        if len(terminated) != len(tasks):
+        if len(terminated) < len(tasks):
             time += 1
             endEvent.set()
+        # else:
+        #     exit()
         printEvent.clear()
 
 
@@ -145,3 +148,10 @@ p4.start()
 print_thread.start()
 
 endEvent.set()
+
+
+# p1.join()
+# p2.join()
+# p3.join()
+# p4.join()
+# print_thread.join()
