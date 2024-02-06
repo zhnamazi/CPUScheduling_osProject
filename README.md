@@ -27,10 +27,10 @@ This file contains the implementation of the Shortest Job First (SJF) scheduling
 
 This file contains the implementation of the Round Robin (RR) scheduling algorithm. Each core processes tasks in a cyclic order, allowing fair sharing of CPU time.
 
-- **Task class:** Remains the same as in FCFS.
-- **update_queue function:** Similar to FCFS.
-- **process_t function:** Modified to implement round-robin task allocation. Each core executes tasks in a cyclic order with a fixed time slice.
-- **print_t function:** Prints the status of CPU cores at each time step.
+- **`Task class:`** Remains the same as in FCFS.
+- **`update_queue function:`** Similar to FCFS.
+- **`process_t function:`** Modified to implement round-robin task allocation. Each core executes tasks in a cyclic order with a fixed time slice.
+- **`print_t function:`** Prints the status of CPU cores at each time step.
 
 ### hrrn.py
 
